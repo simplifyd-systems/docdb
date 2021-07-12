@@ -90,25 +90,15 @@ func (db *MongoDB) Save(ctx context.Context, c string, data interface{}) (string
 
 // SaveMultiple func: c stands for collection where data would be saved. e.g save data in 'users' collection in MongoDB
 // ctx can be a mongodb session context for transactions
-func (db *MongoDB) SaveMultiple(ctx context.Context, items map[string]interface{}) ([]string, error) {
-	insertedIDs := make([]string, len(items))
+func (db *MongoDB) SaveMultiple(ctx context.Context, c string, items []interface{}) ([]interface{}, error) {
+	collection := db.GetCollection(c)
 
-	for c, data := range items {
-		collection := db.GetCollection(c)
-
-		insertResult, err := collection.InsertOne(ctx, data)
-		if err != nil {
-			var merr mongo.WriteException
-			merr = err.(mongo.WriteException)
-			errCode := merr.WriteErrors[0].Code
-			if errCode == 11000 {
-				return nil, ErrMongoDBDuplicate
-			}
-			return nil, err
-		}
-		insertedIDs = append(insertedIDs, insertResult.InsertedID.(primitive.ObjectID).Hex())
+	insertManyResult, err := collection.InsertMany(ctx, items)
+	if err != nil {
+		return nil, err
 	}
-	return insertedIDs, nil
+
+	return insertManyResult.InsertedIDs, nil
 }
 
 // GetItem func: c stands for collection where item should be retrieved. e.g retrieve item from 'users' collection in MongoDB.
