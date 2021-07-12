@@ -1,4 +1,4 @@
-package db
+package docdb
 
 import (
 	"context"
