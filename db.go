@@ -11,13 +11,13 @@ import (
 )
 
 // ErrMongoDBDuplicate error
-var ErrMongoDBDuplicate = errors.New("Duplicate entry")
+var ErrMongoDBDuplicate = errors.New("duplicate entry")
 
 // ErrInvalidObjectID error
-var ErrInvalidObjectID = errors.New("Invalid object ID")
+var ErrInvalidObjectID = errors.New("invalid object ID")
 
 // ErrNotFound error
-var ErrNotFound = errors.New("Item not found")
+var ErrNotFound = errors.New("item not found")
 
 // MongoDB connection holder
 type MongoDB struct {
