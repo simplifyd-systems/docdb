@@ -10,6 +10,20 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
+type DBIntf interface {
+	Save(ctx context.Context, collection string, data interface{}) (string, error)
+	SaveMultiple(context.Context, string, []interface{}) ([]interface{}, error)
+	GetItem(ctx context.Context, collection string, filter map[string]interface{}, excludedFields map[string]interface{}, result interface{}) error
+	GetItems(ctx context.Context, collection string, filter map[string]interface{}, limit int64, excludedFields map[string]interface{}, sort map[string]interface{}, results interface{}) error
+	CountItems(ctx context.Context, collection string, filter map[string]interface{}) (int64, error)
+	DeleteItem(ctx context.Context, c string, filter map[string]interface{}) (int64, error)
+	DeleteItems(ctx context.Context, c string, filter map[string]interface{}) (int64, error)
+	UpdateItem(ctx context.Context, c string, match map[string]interface{}, update map[string]interface{}) (int64, error)
+	UpdateItems(ctx context.Context, c string, match map[string]interface{}, update map[string]interface{}) (int64, error)
+	GetCollection(collection string) *mongo.Collection
+	GetClient() *mongo.Client
+}
+
 // ErrMongoDBDuplicate error
 var ErrMongoDBDuplicate = errors.New("duplicate entry")
 
