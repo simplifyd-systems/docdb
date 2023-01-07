@@ -7,7 +7,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
 type DBIntf interface {
@@ -22,6 +24,14 @@ type DBIntf interface {
 	UpdateItems(ctx context.Context, c string, match map[string]interface{}, update map[string]interface{}) (int64, error)
 	GetCollection(collection string) *mongo.Collection
 	GetClient() *mongo.Client
+
+	StartTxn() error
+}
+
+type Txn struct {
+	session mongo.Session
+	txnopts *options.TransactionOptions
+	fns     []func(sessionContext mongo.SessionContext) error
 }
 
 // ErrMongoDBDuplicate error
@@ -232,4 +242,44 @@ func (db *MongoDB) DeleteItems(ctx context.Context, c string, filter map[string]
 	}
 
 	return deleteResult.DeletedCount, nil
+}
+
+func (db *MongoDB) StartTxn() (*Txn, error) {
+	wc := writeconcern.New(writeconcern.WMajority())
+	rc := readconcern.Snapshot()
+	txnOpts := options.Transaction().SetWriteConcern(wc).SetReadConcern(rc)
+	session, err := db.GetClient().StartSession()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Txn{
+		txnopts: txnOpts,
+		session: session,
+	}, nil
+}
+
+func (this *Txn) AddExecution(fn func(sessionContext mongo.SessionContext) error) {
+	this.fns = append(this.fns, fn)
+}
+
+func (this *Txn) Execute(ctx context.Context) error {
+	defer this.session.EndSession(context.Background())
+
+	callback := func(sessionContext mongo.SessionContext) (interface{}, error) {
+		for _, fn := range this.fns {
+			err := fn(sessionContext)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return nil, nil
+	}
+
+	_, err := this.session.WithTransaction(context.Background(), callback, this.txnopts)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
