@@ -25,7 +25,7 @@ type DBIntf interface {
 	GetCollection(collection string) *mongo.Collection
 	GetClient() *mongo.Client
 
-	StartTxn() error
+	StartTxn() (*Txn, error)
 }
 
 type Txn struct {
